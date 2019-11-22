@@ -1,11 +1,11 @@
-// Problema ----------------------------------------------------------------------------------------------------
+-- Problema ----------------------------------------------------------------------------------------------------
 É necessário desenvolver um sistema que sirva para gerenciar conjuntos de equipamentos do jogo Destiny 2. Para cadastrar os conjuntos de armadura,
 antes devem ser cadastrados os equipamentos, suas características (como mods), e também deve ser possível gerenciar o inventário de equipamentos, para
 na hora de montar um conjunto de armadura, saber se esse equipamento já está equipado ou se ele está disponível. Além desses itens descritos, também é
 necessário implementar validações na construção do conjunto de equipamentos, para validar se o tipo do equipamento é compatível com a posição que está 
 sendo designada a ele, e também é necessário calcular o poder médio desse conjunto de equipamentos.
 
-// Tabelas -----------------------------------------------------------------------------------------------------
+-- Tabelas -----------------------------------------------------------------------------------------------------
 
 EquippedItems(GuardianId, PrimaryWeaponId, SpecialWeaponId, HeavyWeaponId, HeadId, BodyId, LegsId, ArmsId, ClassItemId) (Ao equipar algo, uma trigger deverá alterar o status no inventário correspondete)
 
@@ -37,7 +37,7 @@ Race(Name)
 
 Target(Name)
 
-// Scripts de criação das tabelas ----------------------------------------------------------------------------
+-- Scripts de criação das tabelas ----------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `bdproj3`.`Armor` (
   `Id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -340,7 +340,133 @@ AUTO_INCREMENT = 5
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 
-// Consultas -------------------------------------------------------------------------------------------------
+-- Triggers --------------------------------------------------------------------------------------------------
+
+CREATE DEFINER=`root`@`localhost` TRIGGER `EquippedItems_BEFORE_INSERT` BEFORE INSERT ON `EquippedItems` FOR EACH ROW BEGIN
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.PrimaryWeaponId) <> 3 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma primária deve ser da categoria Primária!';
+END IF;
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.SpecialWeaponId) <> 2 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma especial deve ser da categoria Especial!';
+END IF;
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.HeavyWeaponId) <> 1 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma pesada deve ser da categoria Pesada!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.HeadId) <> 1 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura da cabeça deve ser do tipo Cabeça!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.BodyId) <> 2 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura do corpo deve ser do tipo Corpo!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.LegsId) <> 3 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura das pernas deve ser do tipo Pernas!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.ArmsId) <> 4 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura dos braços deve ser do tipo Braços!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.ClassItemId) <> 5 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: O item de classe deve ser do tipo Item de Classe!';
+END IF;
+
+END;
+
+CREATE DEFINER=`root`@`localhost` TRIGGER `EquippedItems_AFTER_INSERT` AFTER INSERT ON `EquippedItems` FOR EACH ROW BEGIN
+
+UPDATE WeaponInventory 
+   SET StatusId = 2 
+ WHERE Id IN (NEW.PrimaryWeaponId, NEW.SpecialWeaponId, NEW.HeavyWeaponId)
+   AND GuardianId = NEW.GuardianId;
+   
+UPDATE ArmorInventory 
+   SET StatusId = 2 
+ WHERE Id IN (NEW.HeadId, NEW.BodyId, NEW.LegsId, NEW.ArmsId, NEW.ClassItemId)
+   AND GuardianId = NEW.GuardianId;
+ 
+END;
+
+CREATE DEFINER=`root`@`localhost` TRIGGER `EquippedItems_BEFORE_UPDATE` BEFORE UPDATE ON `EquippedItems` FOR EACH ROW BEGIN
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.PrimaryWeaponId) <> 3 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma primária deve ser da categoria Primária!';
+END IF;
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.SpecialWeaponId) <> 2 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma especial deve ser da categoria Especial!';
+END IF;
+
+IF (SELECT CategoryId FROM Weapon WHERE Id = NEW.HeavyWeaponId) <> 1 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A arma pesada deve ser da categoria Pesada!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.HeadId) <> 1 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura da cabeça deve ser do tipo Cabeça!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.BodyId) <> 2 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura do corpo deve ser do tipo Corpo!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.LegsId) <> 3 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura das pernas deve ser do tipo Pernas!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.ArmsId) <> 4 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: A armadura dos braços deve ser do tipo Braços!';
+END IF;
+
+IF (SELECT TypeId FROM Armor WHERE Id = NEW.ClassItemId) <> 5 THEN
+	SIGNAL SQLSTATE '02000' SET MESSAGE_TEXT = 'Aviso: O item de classe deve ser do tipo Item de Classe!';
+END IF;
+
+END;
+
+CREATE DEFINER=`root`@`localhost` TRIGGER `EquippedItems_AFTER_UPDATE` AFTER UPDATE ON `EquippedItems` FOR EACH ROW BEGIN
+
+UPDATE WeaponInventory 
+   SET StatusId = 1 
+ WHERE Id IN (OLD.PrimaryWeaponId, OLD.SpecialWeaponId, OLD.HeavyWeaponId)
+   AND GuardianId = OLD.GuardianId;
+   
+UPDATE ArmorInventory 
+   SET StatusId = 1 
+ WHERE Id IN (OLD.HeadId, OLD.BodyId, OLD.LegsId, OLD.ArmsId, OLD.ClassItemId)
+   AND GuardianId = OLD.GuardianId;
+
+UPDATE WeaponInventory 
+   SET StatusId = 2 
+ WHERE Id IN (NEW.PrimaryWeaponId, NEW.SpecialWeaponId, NEW.HeavyWeaponId)
+   AND GuardianId = NEW.GuardianId;
+   
+UPDATE ArmorInventory 
+   SET StatusId = 2 
+ WHERE Id IN (NEW.HeadId, NEW.BodyId, NEW.LegsId, NEW.ArmsId, NEW.ClassItemId)
+   AND GuardianId = NEW.GuardianId;
+
+END;
+
+CREATE DEFINER=`root`@`localhost` TRIGGER `EquippedItems_AFTER_DELETE` AFTER DELETE ON `EquippedItems` FOR EACH ROW BEGIN
+
+UPDATE WeaponInventory 
+   SET StatusId = 1 
+ WHERE Id IN (OLD.PrimaryWeaponId, OLD.SpecialWeaponId, OLD.HeavyWeaponId)
+   AND GuardianId = OLD.GuardianId;
+   
+UPDATE ArmorInventory 
+   SET StatusId = 1 
+ WHERE Id IN (OLD.HeadId, OLD.BodyId, OLD.LegsId, OLD.ArmsId, OLD.ClassItemId)
+   AND GuardianId = OLD.GuardianId;
+
+END;
+
+-- Consultas -------------------------------------------------------------------------------------------------
 
 /* Consulta com 4 tabelas */
 /* Consultando todos os efeitos de cada Mod cadastrado no banco */
